@@ -51,10 +51,6 @@ class Paramecium:
         self.interval = INTERVAL
         # 現在のフレーム（カラー）
         self.frame = None
-        # 現在のフレーム（グレー）
-        self.gray_next = None
-        # 前回のフレーム（グレー）
-        self.gray_prev = None
         # しきい値値処理した前回
         self.th_prev = None
         # しきい値処理した現在
@@ -109,9 +105,9 @@ class Paramecium:
         return df_ret
 
     def getOptFlow(self, features_prev):
-        self.gray_next = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
+        gray_frame = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
         ret, self.th_next = cv2.threshold(
-            self.gray_next, 50, 255, cv2.THRESH_BINARY)
+            gray_frame, 50, 255, cv2.THRESH_BINARY)
 
         # オプティカルフローの計算
         features, status, err = cv2.calcOpticalFlowPyrLK(
@@ -219,145 +215,28 @@ class Paramecium:
 
         return 1
 
-    def run(self):
-        frame_n = 0
-        frame_list = np.empty(0)
-        X_list_total = np.empty(0)
-        Y_list_total = np.empty(0)
+    def get_frame(self):
+        end_flag, frame = self.video.read()
+        th=None
+        if end_flag:
+            gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            ret, th_image = cv2.threshold(
+                gray_frame, 50, 255, cv2.THRESH_BINARY)
 
-        cap = cv2.VideoCapture(VIDEO_DATA)  # パスを指定
-        print("loaded video: ", VIDEO_DATA)
+        return frame, th_image, end_flag
 
-        # 最初のフレームの処理
-        end_flag, self.frame = self.video.read()
-        self.gray_prev = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
-        ret, self.th_prev = cv2.threshold(
-            self.gray_prev, 50, 255, cv2.THRESH_BINARY)
-
-        cv2.imshow("Paramecium", self.frame)
-        key = cv2.waitKey(0)
-
-        if self.features is None:
-            print("特徴点が登録されていません")
-            exit()
-
-        # update mouse point to features point
-        # it takes a few steps to get stable tracking
-        print("features",self.features)
-        print("status",self.status)
-
-        for i in range(3):
-            features_prev = self.features
-            self.features, self.status = self.getOptFlow(
-                features_prev=features_prev)
-
-        print("features",self.features)
-        print("status",self.status)
-
-
-        # 特徴点を中心に円を描く
-        para_n = len(self.features)
-        for feature in self.features:
-            center = np.array((feature[0], feature[1])).astype(np.int32)
-            cv2.circle(self.frame, center=center,
-                       radius=16, color=(15, 241, 255), thickness=1, lineType=cv2.LINE_8, shift=0)
-
-        # 特徴点の追跡（動画終了 or Escを押すまで）
-        while end_flag:
-            features_prev = self.features
-            self.features, self.status = self.getOptFlow(
-                features_prev=features_prev)
-
-            # 引き続き特徴点がある場合は、速さを計算
-            if len(self.features) != para_n:
-                print("Lost some parameciums...")
-                break
-
-            for para_id, feature in enumerate(self.features):
-                # 特徴点を中心に円を描く
-                center = np.array(
-                    (feature[0], feature[1])).astype(np.int32)
-                cv2.circle(self.frame, center=center,
-                           radius=16, color=(15, 241, 255), thickness=1, lineType=cv2.LINE_8, shift=0)
-
-                # 特徴点の(X,Y)を配列に格納
-                X_list_total = np.append(X_list_total, feature[0])
-                Y_list_total = np.append(Y_list_total, feature[1])
-                if self.verbose:
-                    print("appended feature")
-
-                # リアルタイムでの遊泳軌跡描写
-                plt.figure("monitor")
-                if frame_n % 30 != 0:
-                    plt.plot(
-                        feature[0], feature[1], color=self.colors[para_id], marker="o", markersize=0.5)
-                else:
-                    plt.plot(
-                        feature[0], feature[1], color="k", marker="D", markersize=3)
-
-                plt.xlabel(str(frame_n/fps)+"  [s]")
-                plt.title("(x, y)")
-                plt.xlim(0, 640)
-                plt.ylim(480, 0)
-                plt.pause(0.001)  # plt.show()をつかうと実行が止まるので、plt.pause()を使う
-                frame_list = np.append(frame_list, frame_n/fps)
-
-            frame_n += 1
-
-            # 表示
-            cv2.imshow("Paramecium", self.frame)
-
-            # 次のループ処理の準備
-            self.th_prev = self.th_next
-            end_flag, self.frame = self.video.read()
-
-            if end_flag:
-                self.gray_next = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
-                ret, self.th_next = cv2.threshold(
-                    self.gray_next, 50, 255, cv2.THRESH_BINARY)
-
-            # インターバル
-            key = cv2.waitKey(self.interval)
-            # "Esc"キー押下で終了
-            if key == ESC_KEY:
-                break
-            # "s"キー押下で一時停止
-            elif key == S_KEY:
-                self.interval = 0
-            elif key == R_KEY:
-                self.interval = INTERVAL
-
-        fname=distroot+str(FILE_NAME)+"/"+str(FILE_NAME)+'_fig1.png'
-        plt.savefig(fname)
-        print("saved {}".format(fname))
-
-        # -------ここから追跡終了後の処理（直下は解析に使うデータや配列の作成：データの前処理）---------------------------
-        print("# of params :", para_n)
-        print("# of frames : ", frame_n)
-        print("time length : {} [ms]".format(frame_n*fps))
-        if para_n*(frame_n+1) != len(X_list_total):
-            print("x_total: ", X_list_total.shape)
-            print("y_total: ", Y_list_total.shape)
-            print("[Warning] Some parameciums were lost during chasing...")
-
-        # 座標,速さ,時間データ（複数匹分）
-        X_list_total = X_list_total.reshape((frame_n, para_n))
-        Y_list_total = Y_list_total.reshape((frame_n, para_n))
-        reshape_frame = frame_list.reshape((frame_n, para_n))  # 単位は秒
-
+    def analyze_data(self, df_pos, para_n):
         # -------ここからデータ解析-------------------------------------------------
         # 追跡した全てのゾウリムシに対する行動解析
-        for i in range(para_n):
+        df_pos['X']=df_pos['X']*float(args[3])
+        df_pos['Y']=df_pos['Y']*float(args[4])
+        for para_id in range(para_n):
             # 各ゾウリムシのX,Y座標や速さを格納する配列の作成（空の配列）
-            #df_traj : データ保存用(グラフには使わない)
-            df_traj=pd.DataFrame(np.zeros((frame_n, 3)),columns=['frame','X','Y'])
+            df_traj=df_pos[df_pos['para_id']==para_id]
             df_freq=pd.DataFrame([])
 
             # 軌道データ(X,Y)（生データ）
-            df_traj['frame'] = reshape_frame[:, i]
-            df_traj['X'] = X_list_total[:, i]*float(args[3])
-            df_traj['Y'] = Y_list_total[:, i]*float(args[4])
-            df_traj.set_index('frame',inplace=True)
+            df_traj.set_index('time', inplace=True)
 
             # ローパスフィルターをかける + 周波数解析
             for col in ['X','Y']:
@@ -395,110 +274,213 @@ class Paramecium:
             df_freq_amp_Y = self.get_freq_amp_peak(df_freq['Y_freq'], df_freq['Y_amp'])
 
             # -------データ保存-------------------------------------------
-            distpath = distroot+str(FILE_NAME)+"/Para"+str(i)+"_"+str(FILE_NAME)
+            distpath = distroot+str(FILE_NAME)+"/Para"+str(para_id)+"_"+str(FILE_NAME)
 
             df_traj.to_csv(distpath+"_XY.csv", index=True)
             df_freq.to_csv(distpath+"_freq.csv", index=True)
             df_freq_amp_X.to_csv(distpath+"_X_peak_Fourier.csv", index=True)
             df_freq_amp_Y.to_csv(distpath+"_Y_peak_Fourier.csv", index=True)
 
-            # -------グラフ作成----------------------
-            def plot(x, y, x2=-1, y2=None,
-                     color=None, color2=None,
-                     linewidth=0.5, linewidth2=0.5,
-                     xlabel="", ylabel="",
-                     figtitle="", title="", save_name=None):
-                plt.figure(figtitle)
-                plt.title(title)
-                plt.plot(x, y, color=color, linewidth=linewidth)
-                if type(x2) != int:
-                    plt.plot(
-                        x2, y2, color=color2, linewidth=linewidth2)
-                plt.xlabel(xlabel)
-                plt.ylabel(ylabel)
-                plt.grid()
-                if save_name != None:
-                    plt.savefig(save_name)
+            self.plot_graph(df_traj, df_freq, para_id, distpath, pltshow=(para_id==para_n-1))
 
-            # 軌道(X,Y)
-            figtitle = "Trajectory ({})".format(i)
-            plot(
-                x=df_traj['X_lpf'], y=df_traj['Y_lpf'],
-                color=self.colors[i], linewidth=0.5,
-                xlabel="x", ylabel="y",
+        return 0
+
+    def plot_graph(self, df_traj, df_freq, para_id, distpath, pltshow=True):
+        def plot(x, y, x2=-1, y2=None,
+                    color=None, color2=None,
+                    linewidth=0.5, linewidth2=0.5,
+                    xlabel="", ylabel="",
+                    figtitle="", title="", save_name=None):
+            plt.figure(figtitle)
+            plt.title(title)
+            plt.plot(x, y, color=color, linewidth=linewidth)
+            if type(x2) != int:
+                plt.plot(
+                    x2, y2, color=color2, linewidth=linewidth2)
+            plt.xlabel(xlabel)
+            plt.ylabel(ylabel)
+            plt.grid()
+            if save_name != None:
+                plt.savefig(save_name)
+
+        # 軌道(X,Y)
+        figtitle = "Trajectory ({})".format(para_id)
+        plot(
+            x=df_traj['X_lpf'], y=df_traj['Y_lpf'],
+            color=self.colors[para_id], linewidth=0.5,
+            xlabel="x", ylabel="y",
+            figtitle=figtitle,
+            title="trajectory",
+            save_name=distpath+'_XY_lowpass_zoom.png')
+
+        # 軌道(X,Y):1秒毎にdotをplot
+        figtitle = "Trajectory (x,y) ({}) with position per sec".format(para_id)
+        plot(
+            x=df_traj['X_lpf'], y=df_traj['Y_lpf'],
+            color=self.colors[para_id], linewidth=0.5,
+            title="trajectory",
+            figtitle=figtitle,
+            xlabel="x", ylabel="y")
+
+        cm=plt.get_cmap('copper') 
+        cm_interval=[ i / (len(df_traj['X_lpf'][::30])) for i in \
+            range(1,len(df_traj['X_lpf'][::30])+1) ]
+        cm=cm(cm_interval)
+        plt.scatter(df_traj['X_lpf'][::30], df_traj['Y_lpf'][::30], 
+            c=cm, alpha=0.7)
+        plt.grid()
+        plt.savefig(distpath+"_XY_dots.png")
+
+        # 生データでの速さ
+        figtitle = "speed (raw data) ({})".format(para_id)
+        plot(x=df_traj.index, y=df_traj['V'],
+                color="k",
+                title="speed (raw data)",
                 figtitle=figtitle,
-                title="trajectory",
-                save_name=distpath+'_XY_lowpass_zoom.png')
+                xlabel="time (s)", ylabel="speed",
+                save_name=distpath+"_original_Speed.png")
 
-            # 軌道(X,Y):1秒毎にdotをplot
-            figtitle = "Trajectory (x,y) ({}) with position per sec".format(i)
-            plot(
-                x=df_traj['X_lpf'], y=df_traj['Y_lpf'],
-                color=self.colors[i], linewidth=0.5,
-                title="trajectory",
+        # ローパス処理後の速さ
+        figtitle = "speed (lowpass data)) ({})".format(para_id)
+        plot(x=df_traj.index, y=df_traj['V_lpf2'],
+                color="b",
+                title="speed (lowpass data)",
                 figtitle=figtitle,
-                xlabel="x", ylabel="y")
+                xlabel="time (s)", ylabel="speed",
+                save_name=distpath+"_Speed_lowpass.png")
 
-            cm=plt.get_cmap('copper') 
-            cm_interval=[ i / (len(df_traj['X_lpf'][::30])) for i in \
-                range(1,len(df_traj['X_lpf'][::30])+1) ]
-            cm=cm(cm_interval)
-            plt.scatter(df_traj['X_lpf'][::30], df_traj['Y_lpf'][::30], 
-                c=cm, alpha=0.7)
-            plt.grid()
-            plt.savefig(distpath+"_XY_dots.png")
+        # ローパス処理前と処理後の速さ比較
+        figtitle = "speed (raw vs lowpass data) ({})".format(para_id)
+        plot(x=df_traj.index, y=df_traj['V'],
+                x2=df_traj.index, y2=df_traj['V_lpf2'],
+                color="k", color2=self.colors[para_id],
+                title="speed (raw vs lowpass data)",
+                figtitle=figtitle,
+                xlabel="time (s)", ylabel="speed",
+                save_name=distpath+"_Speed_lowpass_check.png")
 
-            # 生データでの速さ
-            figtitle = "speed (raw data) ({})".format(i)
-            plot(x=df_traj.index, y=df_traj['V'],
-                 color="k",
-                 title="speed (raw data)",
-                 figtitle=figtitle,
-                 xlabel="time (s)", ylabel="speed",
-                 save_name=distpath+"_original_Speed.png")
+        # パワースペクトル（X,Y方向それぞれsubfigureに）
+        fig = plt.figure("power spectrum ({})".format(para_id))
+        ax1 = fig.add_subplot(2, 1, 1)
+        ax1.plot(df_freq['X_freq'][1:], df_freq['X_amp'][1:], color=self.colors[para_id])
+        ax1.set_xlabel("Fequency(X)")
+        ax1.set_ylabel("Amplitude(X)")
+        ax1.set_xlim(0, 8)
+        plt.grid()
 
-            # ローパス処理後の速さ
-            figtitle = "speed (lowpass data)) ({})".format(i)
-            plot(x=df_traj.index, y=df_traj['V_lpf2'],
-                 color="b",
-                 title="speed (lowpass data)",
-                 figtitle=figtitle,
-                 xlabel="time (s)", ylabel="speed",
-                 save_name=distpath+"_Speed_lowpass.png")
+        ax2 = fig.add_subplot(2, 1, 2)
+        ax2.plot(df_freq['Y_freq'][1:], df_freq['Y_amp'][1:], color=self.colors[para_id])
+        ax2.set_xlabel("Fequency(Y)")
+        ax2.set_ylabel("Amplitude(Y)")
+        ax2.set_xlim(0, 8)
+        plt.grid()
+        plt.savefig(distpath+"_Power_spectrum.png")
 
-            # ローパス処理前と処理後の速さ比較
-            figtitle = "speed (raw vs lowpass data) ({})".format(i)
-            plot(x=df_traj.index, y=df_traj['V'],
-                 x2=df_traj.index, y2=df_traj['V_lpf2'],
-                 color="k", color2=self.colors[i],
-                 title="speed (raw vs lowpass data)",
-                 figtitle=figtitle,
-                 xlabel="time (s)", ylabel="speed",
-                 save_name=distpath+"_Speed_lowpass_check.png")
+        if pltshow:
+            plt.show() 
 
-            # パワースペクトル（X,Y方向それぞれsubfigureに）
-            fig = plt.figure("power spectrum ({})".format(i))
-            ax1 = fig.add_subplot(2, 1, 1)
-            ax1.plot(df_freq['X_freq'][1:], df_freq['X_amp'][1:], color=self.colors[i])
-            ax1.set_xlabel("Fequency(X)")
-            ax1.set_ylabel("Amplitude(X)")
-            ax1.set_xlim(0, 8)
-            plt.grid()
+    def run(self):
+        frame_n = 0
+        frame_list = np.empty(0)
+        cols=['time','para_id','X', 'Y']
+        df_pos=pd.DataFrame([], columns=cols)
 
-            ax2 = fig.add_subplot(2, 1, 2)
-            ax2.plot(df_freq['Y_freq'][1:], df_freq['Y_amp'][1:], color=self.colors[i])
-            ax2.set_xlabel("Fequency(Y)")
-            ax2.set_ylabel("Amplitude(Y)")
-            ax2.set_xlim(0, 8)
-            plt.grid()
-            if (i == para_n-1):
-                plt.savefig(distpath+"_Power_spectrum.png")
+        cap = cv2.VideoCapture(VIDEO_DATA)  # パスを指定
+        print("loaded video: ", VIDEO_DATA)
 
-            plt.show()
+        # 最初のフレームの処理
+        self.frame, self.th_prev, end_flag = self.get_frame()
+
+        cv2.imshow("Paramecium", self.frame)
+        key = cv2.waitKey(0)
+
+        if self.features is None:
+            print("特徴点が登録されていません")
+            exit()
+
+        # update mouse point to features point
+        # it takes a few steps to get stable tracking
+
+        # for i in range(3):
+        #     # 次のループ処理の準備
+        #     self.frame, self.th_next, end_flag = self.get_frame()
+        #     features_prev = self.features
+        #     self.features, self.status = self.getOptFlow(
+        #         features_prev=features_prev)
+
+        # 特徴点を中心に円を描く
+        para_n = len(self.features)
+        for feature in self.features:
+            center = np.array((feature[0], feature[1])).astype(np.int32)
+            cv2.circle(self.frame, center=center,
+                       radius=16, color=(15, 241, 255), thickness=1, lineType=cv2.LINE_8, shift=0)
+
+        # 特徴点の追跡（動画終了 or Escを押すまで）
+        while end_flag:
+            features_prev = self.features
+            self.features, self.status = self.getOptFlow(
+                features_prev=features_prev)
+
+            # 引き続き特徴点がある場合は、速さを計算
+            if len(self.features) != para_n:
+                print("Lost some parameciums...")
+                break
+
+            for para_id, feature in enumerate(self.features):
+                # 特徴点を中心に円を描く
+                center = np.array(
+                    (feature[0], feature[1])).astype(np.int32)
+                cv2.circle(self.frame, center=center,
+                           radius=16, color=(15, 241, 255), thickness=1, lineType=cv2.LINE_8, shift=0)
+
+                # 特徴点データ(X,Y)を配列に格納
+                df_new=pd.DataFrame([[frame_n/fps,para_id,feature[0],feature[1]]],columns=cols)
+                df_pos=pd.concat([df_pos, df_new],axis=0,ignore_index=True)
+
+                # リアルタイムでの遊泳軌跡描写
+                plt.figure("monitor")
+                if frame_n % 30 != 0:
+                    plt.plot(feature[0], feature[1], color=self.colors[para_id], marker="o", markersize=0.5)
+                else:
+                    plt.plot(feature[0], feature[1], color="k", marker="o", markersize=0.5)
+                plt.xlabel(str(frame_n/fps)+"  [s]")
+                plt.title("(x, y)")
+                plt.xlim(0, 640)
+                plt.ylim(480, 0)
+                plt.pause(0.001)  # plt.show()をつかうと実行が止まるので、plt.pause()を使う
+                frame_list = np.append(frame_list, frame_n/fps)
+
+            frame_n += 1
+
+            # 表示
+            cv2.imshow("Paramecium", self.frame)
+
+            # 次のループ処理の準備
+            self.th_prev = self.th_next
+            self.frame, self.th_next, end_flag = self.get_frame()
+
+            # インターバル
+            key = cv2.waitKey(self.interval)
+            # "Esc"キー押下で終了
+            if key == ESC_KEY:
+                break
+            # "s"キー押下で一時停止
+            elif key == S_KEY:
+                self.interval = 0
+            elif key == R_KEY:
+                self.interval = INTERVAL
+
+        fname=distroot+str(FILE_NAME)+"/"+str(FILE_NAME)+'_fig1.png'
+        plt.savefig(fname)
+        print("saved {}".format(fname))
+        print("# of params :", para_n)
+        print("# of frames : ", frame_n)
+        print("time length : {} [ms]".format(frame_n*fps))
+
+        self.analyze_data(df_pos, para_n)
 
         self.video.release()
         cv2.destroyAllWindows()
-
 
 
 if __name__ == '__main__':
