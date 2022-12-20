@@ -23,21 +23,6 @@ R_KEY = 0x72  # R key
 MAX_FEATURE_NUM = 500
 # 反復アルゴリズムの終了条件
 CRITERIA = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03)
-# ビデオデータ(引数から取得)
-args = sys.argv
-VIDEO_DATA = args[1]
-dele = args[2] + "/"
-FILE_NAME = VIDEO_DATA.lstrip(dele)
-FILE_NAME = FILE_NAME.rstrip(".mov")
-# ビデオデータと同じ名前のディレクトリ作成
-distroot = "outputs/"
-os.makedirs("outputs/"+FILE_NAME, exist_ok=True)
-
-# fps取得
-cap = cv2.VideoCapture(VIDEO_DATA)  # パスを指定
-fps = cap.get(cv2.CAP_PROP_FPS)
-# インターバル （1000 / フレームレート）
-INTERVAL = int(1000/fps)
 
 
 class Paramecium:
@@ -288,7 +273,7 @@ class Paramecium:
 
                 # リアルタイムでの遊泳軌跡描写
                 plt.figure("monitor")
-                if frame_n % 30 != 0:
+                if frame_n % fps != 0:
                     plt.plot(feature[0], feature[1], color=self.colors[para_id], marker="o", markersize=0.5)
                 else:
                     plt.plot(feature[0], feature[1], color="k", marker="o", markersize=0.5)
@@ -335,8 +320,8 @@ class Paramecium:
     def analyze_data(self, df_pos, para_n):
         # -------ここからデータ解析-------------------------------------------------
         # 追跡した全てのゾウリムシに対する行動解析
-        df_pos['X']=df_pos['X']*float(args[3])
-        df_pos['Y']=df_pos['Y']*float(args[4])
+        df_pos['X']=df_pos['X']*CALX
+        df_pos['Y']=df_pos['Y']*CALY
         for para_id in range(para_n):
             # 各ゾウリムシのX,Y座標や速さを格納する配列の作成（空の配列）
             df_traj=df_pos[df_pos['para_id']==para_id]
@@ -371,20 +356,24 @@ class Paramecium:
             ret.index=df_traj['V_lpf'].dropna().index
             df_traj =pd.concat([df_traj, ret], axis=1)
 
-            freq, amp = self.freq_analysis(df_traj['V_lpf2'], fps)
+            freq, amp = self.freq_analysis(df_traj['V_lpf2'].iloc[1:], fps)
             df_freq['V_lpf2_freq']=pd.Series(freq)
             df_freq['V_lpf2_amp']=pd.Series(amp)
 
             # 周波数解析の結果から、ピークとなる周波数を探す（ピークをとる周波数, その周波数での振幅）
             df_freq_peak_X = self.get_freq_amp_peak(df_freq['X_freq'], df_freq['X_amp'])
             df_freq_peak_Y = self.get_freq_amp_peak(df_freq['Y_freq'], df_freq['Y_amp'])
+            df_freq_peak_V = self.get_freq_amp_peak(df_freq['V_lpf2_freq'], df_freq['V_lpf2_amp'])
+
             # -------データ保存-------------------------------------------
             distpath = distroot+str(FILE_NAME)+"/Para"+str(para_id)+"_"+str(FILE_NAME)
 
-            df_traj.to_csv(distpath+"_XY.csv", index=True)
+            df_traj.to_csv(distpath+".csv", index=True)
             df_freq.to_csv(distpath+"_freq.csv", index=True)
-            df_freq_peak_X.to_csv(distpath+"_X_peak_Fourier.csv", index=True)
-            df_freq_peak_Y.to_csv(distpath+"_Y_peak_Fourier.csv", index=True)
+            df_freq_peak_X.to_csv(distpath+"_X_peak_freq.csv", index=True)
+            df_freq_peak_Y.to_csv(distpath+"_Y_peak_freq.csv", index=True)
+            df_freq_peak_V.to_csv(distpath+"_V_peak_freq.csv", index=True)
+
 
             self.plot_graph(df_traj, df_freq, para_id, distpath, pltshow=(para_id==para_n-1))
 
@@ -432,10 +421,10 @@ class Paramecium:
             )
 
         cm=plt.get_cmap('copper') 
-        cm_interval=[ i / (len(df_traj['X_lpf'][::30])) for i in \
-            range(1,len(df_traj['X_lpf'][::30])+1) ]
+        cm_interval=[ i / (len(df_traj['X_lpf'][::int(fps)])) for i in \
+            range(1,len(df_traj['X_lpf'][::int(fps)])+1) ]
         cm=cm(cm_interval)
-        plt.scatter(df_traj['X_lpf'][::30], df_traj['Y_lpf'][::30], 
+        plt.scatter(df_traj['X_lpf'][::int(fps)], df_traj['Y_lpf'][::int(fps)], 
             c=cm, alpha=0.7)
         plt.grid()
         plt.savefig(distpath+"_XY_dots.png")
@@ -507,18 +496,25 @@ class Paramecium:
         fig = plt.figure("power spectrum ({})".format(para_id))
         fig.subplots_adjust(hspace=0.4, wspace=0.4)
 
-        ax1 = fig.add_subplot(2, 1, 1)
+        ax1 = fig.add_subplot(3, 1, 1)
         ax1.plot(df_freq['X_freq'][1:], df_freq['X_amp'][1:], color=self.colors[para_id])
         ax1.set_xlabel("Fequency(X)")
         ax1.set_ylabel("Amplitude(X)")
         ax1.set_xlim(0, 8)
         plt.grid()
 
-        ax2 = fig.add_subplot(2, 1, 2)
+        ax2 = fig.add_subplot(3, 1, 2)
         ax2.plot(df_freq['Y_freq'][1:], df_freq['Y_amp'][1:], color=self.colors[para_id])
         ax2.set_xlabel("Fequency(Y)")
         ax2.set_ylabel("Amplitude(Y)")
         ax2.set_xlim(0, 8)
+        plt.grid()
+
+        ax3 = fig.add_subplot(3, 1, 3)
+        ax3.plot(df_freq['V_lpf2_freq'][1:], df_freq['V_lpf2_amp'][1:], color=self.colors[para_id])
+        ax3.set_xlabel ("Fequency(V)")
+        ax3.set_ylabel ("Amplitude(V)")
+        ax3.set_xlim(0, 8)
         plt.grid()
         plt.savefig(distpath+"_Power_spectrum.png")
 
@@ -526,6 +522,30 @@ class Paramecium:
             plt.show()
 
 if __name__ == '__main__':
+    # ビデオデータ(引数から取得)
+    args = sys.argv
+    VIDEO_DATA = args[1]
+    CALX = float(args[2]) # micro m/pixel
+    CALY = float(args[3]) # micro m/pixel
+
+    FILE_NAME=VIDEO_DATA.split("/")[-1].split(".")[0]
+
+    # ビデオデータと同じ名前のディレクトリ作成
+    distroot = "outputs/"
+    os.makedirs("outputs/"+FILE_NAME, exist_ok=True)
+
+    # fps取得
+    cap = cv2.VideoCapture(VIDEO_DATA)  # パスを指定
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    # インターバル （1000 / フレームレート）
+    INTERVAL = int(1000/fps)
+
+    print("file path: ",VIDEO_DATA)
+    print("file name: ",FILE_NAME)
+    print("output folder: ", distroot)
+    print("fps: ", fps)
+    print("INTERVAL(1/fps): ", INTERVAL)
+
     Paramecium().run()
 
 # 実行コマンド　python Patra.py 解析したいディレクトリ/解析したいファイル　解析したいディレクトリ
