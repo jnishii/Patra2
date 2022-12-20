@@ -231,9 +231,7 @@ class Paramecium:
             print("特徴点が登録されていません")
             exit()
 
-        # update mouse point to features point
-        # it takes a few steps to get stable tracking
-
+        # skip some frames to get stable tracking
         for i in range(3):
             # 次のループ処理の準備
             self.frame, self.th_next, end_flag = self.get_frame()
