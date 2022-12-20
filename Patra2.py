@@ -318,7 +318,9 @@ class Paramecium:
         cv2.destroyAllWindows()
 
     def analyze_data(self, df_pos, para_n):
-        # -------ここからデータ解析-------------------------------------------------
+        '''
+        Get low passed trajectory, speed, and frequency distribution data
+        '''
         # 追跡した全てのゾウリムシに対する行動解析
         df_pos['X']=df_pos['X']*CALX
         df_pos['Y']=df_pos['Y']*CALY
@@ -522,7 +524,9 @@ class Paramecium:
             plt.show()
 
 if __name__ == '__main__':
-    # ビデオデータ(引数から取得)
+    '''
+    python Patra.py [video_data] [calx] [caly]
+    '''
     args = sys.argv
     VIDEO_DATA = args[1]
     CALX = float(args[2]) # micro m/pixel
@@ -548,4 +552,3 @@ if __name__ == '__main__':
 
     Paramecium().run()
 
-# 実行コマンド　python Patra.py 解析したいディレクトリ/解析したいファイル　解析したいディレクトリ

@@ -62,12 +62,21 @@ $ poetry install
 
 ### キャリブレーションの取り方 (calibration.py)
 
-- python calibration.py マイクロメータの動画ファイル で実行
-- 5mm × 5mm(1目盛り50μm) のマイクロメータの目盛り線を、縦目盛りの5mmの線上 → 縦目盛りの0mmの線上 → 横目盛りの0mmの線上 → 横目盛りの5mmの線上 の順にクリック
-- マイクロメータの動画ファイルは解析ファイルと同様に460×640ピクセルとし、10mm×10mmのマイクロメータが収まるようにを撮影すること！！！
-- 実行するとターミナルに以下のような出力
-- X_scale: 15.1515151515 
-- Y_scale: 15.5279503106 
+1. マイクロメータの動画ファイルを解析ファイルと同様に460×640ピクセルとし、10mm×10mmのマイクロメータが収まるようにを撮影しておくこと！！！
+2. `calibration.py`を起動し，キャリブレーション用ファイルを読み込む
+```
+poetry run python calibration.py <マイクロメータの動画ファイル名>
+```
+実行例
+```
+poetry run python calibration.py Data/chiba/1111/calibration.mov
+```
+3. 5mm × 5mm(1目盛り50μm) のマイクロメータの目盛り線を、縦目盛りの5mmの線上 → 縦目盛りの0mmの線上 → 横目盛りの0mmの線上 → 横目盛りの5mmの線上 の順にクリック
+4. 実行するとターミナルに以下のような出力が出る。単位はμm/pixel
+```
+X_scale: 15.1515151515 
+Y_scale: 15.5279503106 
+```
 
 ### ゾウリムシの追跡 & 行動解析 (Patra2.py)
 
@@ -118,3 +127,8 @@ $ ./run.sh
     - `Para<id>_<filename>_X_peak_freq.csv`
     - `Para<id>_<filename>_Y_peak_freq.csv`
     - `Para<id>_<filename>_V_peak_freq.csv`
+
+### そのほか
+
+- 画像の出力形式はpngで良い?
+- グラフはまとめたほうが良い?　ばらばらが良い?

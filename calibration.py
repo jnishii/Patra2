@@ -189,5 +189,4 @@ class Paramecium:
 if __name__ == '__main__':
     Paramecium().run()
 
-# 実行コマンド　python Patra.py 解析したいディレクトリ/解析したいファイル　解析したいディレクトリ
 
