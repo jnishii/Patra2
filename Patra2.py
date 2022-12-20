@@ -339,10 +339,10 @@ class Paramecium:
                 df_freq[col+'_amp']=pd.Series(amp)
 
             # 速度の計算
-            df_vel=df_traj.diff()
-            df_vel=df_vel.rename(
-                columns={'X':'Vx','Y':'Vy','X_lpf':'Vx_lpf',
-                    'Y_lpf':'Vy_lpf'})
+            df_vel = df_traj.diff()
+            df_vel = df_vel.rename(
+                columns={'X': 'Vx', 'Y': 'Vy', 'X_lpf': 'Vx_lpf',
+                         'Y_lpf': 'Vy_lpf'}).drop(columns='para_id')
             
             df_vel*=fps
             df_traj=pd.concat([df_traj, df_vel], axis=1)
@@ -494,7 +494,7 @@ class Paramecium:
 
         # パワースペクトル（X,Y方向それぞれsubfigureに）
         fig = plt.figure("power spectrum ({})".format(para_id))
-        fig.subplots_adjust(hspace=0.4, wspace=0.4)
+        fig.subplots_adjust(hspace=0.5, wspace=0.5)
 
         ax1 = fig.add_subplot(3, 1, 1)
         ax1.plot(df_freq['X_freq'][1:], df_freq['X_amp'][1:], color=self.colors[para_id])
