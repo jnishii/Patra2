@@ -117,13 +117,14 @@ $ ./run.sh
     - V: Vx,Vyから求めた速さ
     - Vx_lpf, Vy_lpf: X_lpf, Y_lpfから求めた速度
     - V_lpf: Vx_lpf, Vy_lpfから求めた速度
-    - V_lpf2: V_lpfをローパス処理したもの
+    - V_lpf2: V_lpfをローパス処理したもの (**注意**: 稀に負の値になることがある。
 
 - 周波数分析データファイル `Para<id>_<filename>_freq.csv`
     - データ列: `,X_freq,X_amp,Y_freq,Y_amp,V_lpf2_freq,V_lpf2_amp`
     - X_freq,X_amp,Y_freq,Y_amp: X, Y軌道の周波数分析結果
     - V_lpf2_freq,V_lpf2_amp:  V_lpf2の周波数分析結果
 - 周波数ピーク分析データファイル
+    - 上記周波数分析データファイルからピーク周波数を抽出したもの
     - `Para<id>_<filename>_X_peak_freq.csv`
     - `Para<id>_<filename>_Y_peak_freq.csv`
     - `Para<id>_<filename>_V_peak_freq.csv`
