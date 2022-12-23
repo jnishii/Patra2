@@ -1,0 +1,282 @@
+\documentclass[]{jsarticle}
+\usepackage[hypertex]{hyperref}
+\usepackage{amsmath}
+\usepackage{ascmac}
+%\usepackage[height=24cm,width=16cm]{geometry}
+\usepackage{fancyhdr}
+
+\newcommand{\passthrough}[1]{#1}
+%\newcommand{\passthrough}[1]{\lstset{mathescape=false}#1\lstset{mathescape=true}}
+\renewcommand{\labelenumi}{\arabic{enumi})}
+\renewcommand{\labelenumii}{\alph{enumii})}
+
+\providecommand{\tightlist}{%
+   \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+
+\begin{document}
+
+
+\noindent
+%\rule{\linewidth}{0.3pt}
+%\rule{\linewidth}{0.3pt}
+  
+
+\hypertarget{patra2ux306eux30a4ux30f3ux30b9ux30c8ux30fcux30eb}{%
+\section{Patra2のインストール}\label{patra2ux306eux30a4ux30f3ux30b9ux30c8ux30fcux30eb}}
+
+ゾウリムシの追跡プログラム
+
+\begin{itemize}
+\tightlist
+\item
+  https://github.com/bcl-group/motion-capture からの派生
+\item
+  上記motion-captureは\href{https://qiita.com/hitomatagi/items/a4ecf7babdbe710208ae}{OpenCVを使ったモーション
+  テンプレート解析}を参考に作成
+\end{itemize}
+
+\hypertarget{ux74b0ux5883ux69cbux7bc9}{%
+\subsection{環境構築}\label{ux74b0ux5883ux69cbux7bc9}}
+
+\begin{enumerate}
+\tightlist
+\item
+  Python環境のインストール
+\end{enumerate}
+
+\begin{lstlisting}
+$ pyenv install 3.10.2
+$ pyenv rehash
+$ pyenv global 3.10.2 # インストールしたPython 3.10.2 を利用するための設定
+\end{lstlisting}
+
+\begin{enumerate}
+\setcounter{enumi}{1}
+\tightlist
+\item
+  確認
+\end{enumerate}
+
+\begin{lstlisting}
+$ pyenv versions
+    system
+* 3.10.2 (set by /usr/local/var/pyenv/version)
+$ which python
+  /usr/local/var/pyenv/version/shims/python
+$ python --version
+Python 3.10.2
+\end{lstlisting}
+
+\begin{enumerate}
+\setcounter{enumi}{2}
+\tightlist
+\item
+  \href{https://python-poetry.org/docs/}{Poetry}のインストール
+\end{enumerate}
+
+PoetryはPythonのライブラリ管理ツール。これを使ってPatra2に必要なPythonライブラリを管理する。
+
+\begin{lstlisting}
+$ curl -sSL https://install.python-poetry.org | python3 -
+\end{lstlisting}
+
+\begin{enumerate}
+\setcounter{enumi}{3}
+\tightlist
+\item
+  Patraのダウンロード
+\end{enumerate}
+
+\begin{lstlisting}
+git clone git@github.com:jnishii/Patra2.git
+\end{lstlisting}
+
+\begin{enumerate}
+\setcounter{enumi}{4}
+\tightlist
+\item
+  必要なライブラリのインストール
+\end{enumerate}
+
+\begin{lstlisting}
+$ cd Patra2
+$ poetry install
+\end{lstlisting}
+
+\hypertarget{patra2ux306eux4f7fux3044ux65b9}{%
+\subsection{Patra2の使い方}\label{patra2ux306eux4f7fux3044ux65b9}}
+
+\hypertarget{ux4f7fux7528ux4e0aux306eux6ce8ux610f}{%
+\subsubsection{使用上の注意}\label{ux4f7fux7528ux4e0aux306eux6ce8ux610f}}
+
+\begin{itemize}
+\tightlist
+\item
+  解析したいファイルは patara2/Data/
+  の下に置く。サブフォルダを作っても良い。
+\item
+  出力ファイルは patra2/Data/
+  の下に作られるサブフォルダ(ファイル名と同じ名前)に保存される。
+\end{itemize}
+
+\hypertarget{ux89e3ux6790ux306eux9806ux756a}{%
+\subsubsection{解析の順番}\label{ux89e3ux6790ux306eux9806ux756a}}
+
+\begin{itemize}
+\tightlist
+\item
+  キャリブレーション（calibration.py）
+\item
+  ゾウリムシの追跡 \& 行動解析 (Patra2.py)
+\item
+  速さのフーリエ解析（Speed\_fourier.py）
+\end{itemize}
+
+\hypertarget{ux30adux30e3ux30eaux30d6ux30ecux30fcux30b7ux30e7ux30f3ux306eux53d6ux308aux65b9-calibration.py}{%
+\subsubsection{キャリブレーションの取り方
+(calibration.py)}\label{ux30adux30e3ux30eaux30d6ux30ecux30fcux30b7ux30e7ux30f3ux306eux53d6ux308aux65b9-calibration.py}}
+
+\begin{enumerate}
+\tightlist
+\item
+  マイクロメータの動画ファイルを解析ファイルと同様に460×640ピクセルとし、10mm×10mmのマイクロメータが収まるようにを撮影しておくこと！！！
+\item
+  \passthrough{\lstinline!calibration.py!}を起動し，キャリブレーション用ファイルを読み込む
+\end{enumerate}
+
+\begin{lstlisting}
+poetry run python calibration.py <マイクロメータの動画ファイル名>
+\end{lstlisting}
+
+実行例
+
+\begin{lstlisting}
+poetry run python calibration.py Data/chiba/1111/calibration.mov
+\end{lstlisting}
+
+\begin{enumerate}
+\setcounter{enumi}{2}
+\tightlist
+\item
+  5mm × 5mm(1目盛り50μm)
+  のマイクロメータの目盛り線を、縦目盛りの5mmの線上 →
+  縦目盛りの0mmの線上 → 横目盛りの0mmの線上 → 横目盛りの5mmの線上
+  の順にクリック
+\item
+  実行するとターミナルに以下のような出力が出る。単位はμm/pixel
+\end{enumerate}
+
+\begin{lstlisting}
+X_scale: 15.1515151515 
+Y_scale: 15.5279503106 
+\end{lstlisting}
+
+\hypertarget{ux30beux30a6ux30eaux30e0ux30b7ux306eux8ffdux8de1-ux884cux52d5ux89e3ux6790-patra2.py}{%
+\subsubsection{ゾウリムシの追跡 \& 行動解析
+(Patra2.py)}\label{ux30beux30a6ux30eaux30e0ux30b7ux306eux8ffdux8de1-ux884cux52d5ux89e3ux6790-patra2.py}}
+
+\hypertarget{ux5b9fux884cux65b9ux6cd5}{%
+\paragraph{実行方法}\label{ux5b9fux884cux65b9ux6cd5}}
+
+\textbf{実行方法その1}
+
+Patra2のディレクトリ内で以下を実行
+
+\begin{lstlisting}
+$ poetry run python Patra2.py 解析したいディレクトリ/解析したい動画ファイル　X_scaleの値　Y_scaleの値
+\end{lstlisting}
+
+\textbf{例}
+
+\begin{lstlisting}
+$ poetry run python Patra2.py Data/chiba/1111/2836_001.mov 17.161340059327287 16.849643261459075
+\end{lstlisting}
+
+\textbf{実行方法その2}
+
+\passthrough{\lstinline!run.sh!}の中に，上記コマンドが書いてある。エディタで修正して以下を実行
+
+\begin{lstlisting}
+$ ./run.sh
+\end{lstlisting}
+
+\hypertarget{ux51faux529bux30c7ux30fcux30bf}{%
+\paragraph{出力データ}\label{ux51faux529bux30c7ux30fcux30bf}}
+
+\passthrough{\lstinline!outputs/!}の下に解析した動画ファイル名のフォルダができる。
+
+\begin{itemize}
+\tightlist
+\item
+  ローパス（バターワース）処理： 直流成分は1/2,
+  約0-7.4Hzまではほぼ100\%透過, 減衰域は7.4925Hz-9.99Hz
+\item
+  軌道データファイル \passthrough{\lstinline!Para<id>\_<filename>.csv!}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    データ列:
+    \passthrough{\lstinline!time,para\_id,X,Y,X\_lpf,Y\_lpf,Vx,Vy,Vx\_lpf,Vy\_lpf,V,V\_lpf,V\_lpf2!}
+  \item
+    time: 時間
+  \item
+    para\_id: ゾウリムシのID
+  \item
+    X,Y: 位置情報(μm)
+  \item
+    X\_lpf, Y\_lpf: X,Yをローパス処理したもの
+  \item
+    Vx, Vy: X,Yの差分で求めた速度(μm/s)
+  \item
+    V: Vx,Vyから求めた速さ
+  \item
+    Vx\_lpf, Vy\_lpf: X\_lpf, Y\_lpfから求めた速度
+  \item
+    V\_lpf: Vx\_lpf, Vy\_lpfから求めた速度
+  \item
+    V\_lpf2: V\_lpfをローパス処理したもの (\textbf{注意}:
+    稀に負の値になることがある。
+  \end{itemize}
+\item
+  周波数分析データファイル
+  \passthrough{\lstinline!Para<id>\_<filename>\_freq.csv!}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    データ列:
+    \passthrough{\lstinline!,X\_freq,X\_amp,Y\_freq,Y\_amp,V\_lpf2\_freq,V\_lpf2\_amp!}
+  \item
+    X\_freq,X\_amp,Y\_freq,Y\_amp: X, Y軌道の周波数分析結果
+  \item
+    V\_lpf2\_freq,V\_lpf2\_amp: V\_lpf2の周波数分析結果
+  \end{itemize}
+\item
+  周波数ピーク分析データファイル
+
+  \begin{itemize}
+  \tightlist
+  \item
+    上記周波数分析データファイルからピーク周波数を抽出したもの
+  \item
+    \passthrough{\lstinline!Para<id>\_<filename>\_X\_peak\_freq.csv!}
+  \item
+    \passthrough{\lstinline!Para<id>\_<filename>\_Y\_peak\_freq.csv!}
+  \item
+    \passthrough{\lstinline!Para<id>\_<filename>\_V\_peak\_freq.csv!}
+  \end{itemize}
+\end{itemize}
+
+\hypertarget{ux305dux306eux307bux304b}{%
+\subsubsection{そのほか}\label{ux305dux306eux307bux304b}}
+
+\begin{itemize}
+\tightlist
+\item
+  画像の出力形式はpngで良い?
+\item
+  グラフはまとめたほうが良い?　ばらばらが良い?
+\end{itemize}
+
+\end{document}
