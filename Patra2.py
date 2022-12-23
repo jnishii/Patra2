@@ -229,7 +229,7 @@ class Paramecium:
         cv2.imshow("Paramecium", self.frame)
         key = cv2.waitKey(0)
 
-        if self.features is None:
+        if (self.features is None) or (len(self.features)==0):
             print("特徴点が登録されていません")
             exit()
 
@@ -367,6 +367,10 @@ class Paramecium:
             df_freq_peak_Y = self.get_freq_amp_peak(df_freq['Y_freq'], df_freq['Y_amp'])
             df_freq_peak_V = self.get_freq_amp_peak(df_freq['V_lpf2_freq'], df_freq['V_lpf2_amp'])
 
+            # 統計データ表示
+            print("[paramecium {}] Speed data (V_lpf2) statistics".format(para_id))
+            print(df_traj['V_lpf2'].describe())
+
             # -------データ保存-------------------------------------------
             distpath = distroot+str(FILE_NAME)+"/Para"+str(para_id)+"_"+str(FILE_NAME)
 
@@ -460,9 +464,9 @@ class Paramecium:
         #         save_name=distpath+"_Speed_lowpass_check.png")
 
         # speed
-        fig = plt.figure("speed ({})".format(para_id))
-        fig.subplots_adjust(hspace=0.8, wspace=0.4)
-        ax1 = fig.add_subplot(3, 1, 1)
+        fig = plt.figure("speed ({})".format(para_id),figsize=(6, 8))
+        fig.subplots_adjust(hspace=0.6, wspace=0.4)
+        ax1 = fig.add_subplot(4, 1, 1)
         ax1.plot(df_traj.index, df_traj['V'], color="k")
         ax1.set_xlabel("time (s)")
         ax1.set_ylabel("raw speed ($\mu$m/s)")
@@ -471,28 +475,32 @@ class Paramecium:
         #extent = ax1.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
         #fig.savefig(save_name, bbox_inches=extent.expanded(1.3, 1.6))
 
-
-        ax2 = fig.add_subplot(3, 1, 2)
-        ax2.plot(df_traj.index, df_traj['V_lpf2'], color="b")
+        ax2 = fig.add_subplot(4, 1, 2)
+        ax2.plot(df_traj.index, df_traj['V_lpf'], color="b")
         ax2.set_xlabel("time (s)")
         ax2.set_ylabel("lpf speed ($\mu$m/s)")
+        plt.grid()
+
+        ax3 = fig.add_subplot(4, 1, 3)
+        ax3.plot(df_traj.index, df_traj['V_lpf2'], color="b")
+        ax3.set_xlabel("time (s)")
+        ax3.set_ylabel("lpf2 speed ($\mu$m/s)")
         plt.grid()
         #save_name=distpath+"_Speed_lowpass.png"
         #extent = ax2.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
         #fig.savefig(save_name, bbox_inches=extent.expanded(1.3, 1.6))
 
-        ax3 = fig.add_subplot(3, 1, 3)
-        ax3.plot(df_traj.index, df_traj['V'], color="k")
-        ax3.plot(df_traj.index, df_traj['V_lpf2'], color="b")
-        ax3.set_xlabel("time (s)")
-        ax3.set_ylabel("raw vs lpf speed ($\mu$m/s)")
+        ax4 = fig.add_subplot(4, 1, 4)
+        ax4.plot(df_traj.index, df_traj['V'], color="k")
+        ax4.plot(df_traj.index, df_traj['V_lpf2'], color="b")
+        ax4.set_xlabel("time (s)")
+        ax4.set_ylabel("raw vs lpf2 V ($\mu$m/s)")
         plt.grid()
         #save_name=distpath+"_Speed_lowpass_check.png"
         #extent = ax3.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
         #fig.savefig(save_name, bbox_inches=extent.expanded(1.3, 1.6))
         save_name=distpath+"_Speed.png"
         fig.savefig(save_name)
-
 
         # パワースペクトル（X,Y方向それぞれsubfigureに）
         fig = plt.figure("power spectrum ({})".format(para_id))
