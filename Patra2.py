@@ -369,7 +369,7 @@ class Paramecium:
 
             # 統計データ表示
             print("[paramecium {}] Speed data (V_lpf2) statistics".format(para_id))
-            print(df_traj['V_lpf2'].describe())
+            print(df_traj['V_lpf2'].describe(precision=2))
 
             # -------データ保存-------------------------------------------
             distpath = distroot+str(FILE_NAME)+"/Para"+str(para_id)+"_"+str(FILE_NAME)
