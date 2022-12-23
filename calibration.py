@@ -50,8 +50,6 @@ class Paramecium:
         self.features = None
         # 特徴点のステータス
         self.status = None
-        # 色
-        self.colors = ["b", "r", "m", "g", "c", "k", "y"]
 
     def run(self):
         frame_n = 1
@@ -62,11 +60,6 @@ class Paramecium:
         frame_list.append(1/fps)
         frame_list_number = []
         frame_list_number.append(frame_n)
-        X_list_total = []
-        Y_list_total = []
-        speed_list_total = []
-        freq_amp_X_peak_list = []
-        freq_amp_Y_peak_list = []
 
         #グラフの準備
         plt.figure(1)
@@ -87,29 +80,26 @@ class Paramecium:
         print("X_scale:",X_scale)
         print("Y_scale:",Y_scale)
 
-        # 特徴点が登録された場合、その点を中心に円を描く
-        if self.features is not None:
-            for feature in self.features:
-                cv2.circle(self.frame, (feature[0], feature[1]), 16, (15, 241, 255), 1, 8, 0)          
-            # 表示
-            cv2.imshow("Paramecium", self.frame)
+        # # 特徴点が登録された場合、その点を中心に円を描く
+        # if self.features is not None:
+        #     for feature in self.features:
+        #         center = np.array((feature[0], feature[1])).astype(np.int32)
+        #         cv2.circle(self.frame, center=center, radius=16, color=(15, 241, 255), thickness=1, lineType=cv2.LINE_8, shift=0)          
+        #     # 表示
+        #     cv2.imshow("Paramecium", self.frame)
         cv2.destroyAllWindows()
 
-    # マウスクリックで特徴点を指定する
-    # クリックされた近傍に既存の特徴点がある場合は既存の特徴点を削除する
-    # クリックされた近傍に既存の特徴点がない場合は新規に特徴点を追加する
     def onMouse(self, event, x, y, flags, param):
+        '''
+        マウスクリックで特徴点を指定する
+        クリックされた近傍に既存の特徴点がある場合は既存の特徴点を削除する
+        クリックされた近傍に既存の特徴点がない場合は新規に特徴点を追加する        
+        '''
         # 左クリック以外
         if event != cv2.EVENT_LBUTTONDOWN:
             return
 
-        # 最初の特徴点追加
-        if self.features is None:
-            self.addFeature(x, y)
-            return
-
-        # 探索半径（pixel）
-        radius = 5
+        radius = 10
         # 既存の特徴点が近傍にあるか探索
         index = self.getFeatureIndex(x, y, radius)
 
@@ -117,11 +107,17 @@ class Paramecium:
         if index >= 0:
             self.features = np.delete(self.features, index, 0)
             self.status = np.delete(self.status, index, 0)
+            cv2.drawMarker(self.frame, self.center,
+                color=(10, 10, 10), markerType=cv2.MARKER_CROSS, markerSize=20, thickness=1, line_type=cv2.LINE_8)
             print("今選択した特徴点は削除されました。")
-
-        # クリックされた近傍に既存の特徴点がないので新規に特徴点を追加する
         else:
             self.addFeature(x, y)
+            self.center=(x,y)
+            cv2.drawMarker(self.frame, self.center,
+                color=(0, 241, 0), markerType=cv2.MARKER_CROSS, markerSize=20, thickness=1, line_type=cv2.LINE_8)
+
+        cv2.imshow("Paramecium", self.frame)
+
         return
 
     # 指定した半径内にある既存の特徴点のインデックスを１つ取得する

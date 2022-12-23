@@ -138,11 +138,6 @@ class Paramecium:
         # 探索半径（pixel）
         radius = 15
 
-        # draw circle
-        cv2.circle(self.frame, center=(x,y),
-                   radius=radius, color=(0, 241, 0), thickness=1, lineType=cv2.LINE_8, shift=0)
-        cv2.imshow("Paramecium", self.frame)
-
         # 既存の特徴点が近傍にあるか探索
         index = self.getFeatureIndex(pos=[x, y], radius=radius)
 
@@ -150,11 +145,18 @@ class Paramecium:
         if index >= 0:
             self.features = np.delete(self.features, index, 0)
             self.status = np.delete(self.status, index, 0)
+            cv2.circle(self.frame, center=self.center,
+                    radius=radius, color=(10, 10, 10), thickness=1, lineType=cv2.LINE_8, shift=0)
             print("今選択した特徴点は削除されました。")
 
         # クリックされた近傍に既存の特徴点がないので新規に特徴点を追加する
         else:
             self.addFeature(x, y)
+            self.center=(x,y)
+            cv2.circle(self.frame, center=self.center,
+                    radius=radius, color=(0, 241, 0), thickness=1, lineType=cv2.LINE_8, shift=0)
+
+        cv2.imshow("Paramecium", self.frame)            
         return
 
     def getFeatureIndex(self, pos, radius):
