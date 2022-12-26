@@ -44,7 +44,7 @@
 ### 使用上の注意
 
 - 解析したいファイルは patara2/Data/ の下に置く。サブフォルダを作っても良い。
-- 出力ファイルは patra2/Data/ の下に作られるサブフォルダ(ファイル名と同じ名前)に保存される。
+- 出力ファイルは patra2/outputs/ の下に作られるサブフォルダ(ファイル名と同じ名前)に保存される。
 
 ### 解析の順番
 
@@ -79,13 +79,13 @@
 Patra2のディレクトリ内で以下を実行
 
 ```
-$ poetry run python Patra2.py 解析したいディレクトリ/解析したい動画ファイル　X_scaleの値　Y_scaleの値
+$ poetry run python Patra2.py 解析したい動画ファイル名　X_scaleの値　Y_scaleの値
 ```
 
 **例**
 
 ```
-$ poetry run python Patra2.py Data/chiba/1111/2836_001.mov 17.161340059327287 16.849643261459075
+$ poetry run python Patra2.py sample/Ba_dance_3.mov 17.1613401 16.8496433
 ```
 
 
