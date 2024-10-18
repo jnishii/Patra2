@@ -400,6 +400,7 @@ class Paramecium:
             plt.xlabel(xlabel)
             plt.ylabel(ylabel)
             plt.grid()
+            plt.gca().set_aspect('equal')
             if save_name != None:
                 plt.savefig(save_name)
 
